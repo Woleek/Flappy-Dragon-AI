@@ -1,5 +1,6 @@
 import pygame
 import os
+import neat
 import random
 pygame.font.init() # initialize fonts
 
@@ -107,7 +108,6 @@ class Pipe:
     def __init__(self, x):
         self.x = x
         self.height = 0
-        self.gap = 100
         
         self.top = 0 # start of top pipe 
         self.bottom = 0 # start of bottom pipe
@@ -276,15 +276,13 @@ def main():
             # exit game by clicking X
             if event.type == pygame.QUIT:
                 run = False
-         
-        # drake.move()
         
         add_pipe = False
         remove_pipes = []
         for pipe in pipes:
             # chckeing if pipe collided with dragon
             if pipe.collide(drake):
-                pass
+                end = True       
             
             #checking if pipe left the screen
             if pipe.x + pipe.PIPE_TOP.get_width() < 0:

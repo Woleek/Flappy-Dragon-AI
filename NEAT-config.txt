@@ -1,0 +1,93 @@
+# NEAT (NeuroEvolution of Augmenting Topologies) is an evolutionary algorithm that creates artificial neural networks
+
+# genome - member of population (ex. dragons), set of genes that together code for a (neural network) phenotype
+# gene - information coding for a particular aspect of a neural network phenotype
+# node gene - specifies a single neuron (ex. input, output)
+# node connection - specifies a single connection between neurons
+# genomic distance - approximate measure of the difference between genomes, used in dividing the population into species
+
+# node output function: activation(bias+(response∗aggregation(inputs)))
+
+[NEAT]
+fitness_criterion     = max   # take dragons with best result
+fitness_threshold     = 100   # score to achive
+pop_size              = 100   # size of population  
+reset_on_extinction   = False
+
+[DefaultGenome]
+# node activation options
+activation_default      = tanh  # using tanH function 
+activation_mutate_rate  = 0.0   # chance for new random function
+activation_options      = tanh  # choose options for random picker
+
+# node aggregation options
+aggregation_default     = sum  # default aggregation of inputs
+aggregation_mutate_rate = 0.0
+aggregation_options     = sum
+
+# node bias options
+bias_init_type          = gaussian  # bias attribute mean type
+bias_init_mean          = 0.0       # bias attribute values for new nodes
+bias_init_stdev         = 1.0
+bias_max_value          = 30.0      # max value to pick
+bias_min_value          = -30.0     # min value to pick
+bias_mutate_power       = 0.5       # changes after mutations
+bias_mutate_rate        = 0.7
+bias_replace_rate       = 0.1
+
+# genome compatibility options
+compatibility_disjoint_coefficient = 1.0
+compatibility_weight_coefficient   = 0.5
+
+# connection add/remove rates
+conn_add_prob           = 0.5
+conn_delete_prob        = 0.5
+
+# connection enable options
+enabled_default         = True  # default status of connections
+enabled_mutate_rate     = 0.01  # chance for a connection to change it's status
+
+feed_forward            = True  # using neural network with no loops and no memory
+initial_connection      = full  
+
+# node add/remove rates
+node_add_prob           = 0.2
+node_delete_prob        = 0.2
+
+# network parameters
+num_hidden              = 0  # number of hidden neurons 
+num_inputs              = 3  # number of imput neurons (drake.y, distance to top pipe, distance to bottom pipe)
+num_outputs             = 1  # number of output neurons (flap?)
+
+# node response options
+response_init_type      = gaussian  # response attribute mean type
+response_init_mean      = 1.0       # response multiplier attribute values for new nodes
+response_init_stdev     = 0.0
+response_max_value      = 30.0
+response_min_value      = -30.0
+response_mutate_power   = 0.0
+response_mutate_rate    = 0.0
+response_replace_rate   = 0.0
+
+# connection weight options
+weight_init_type        = gaussian  # weight attribute mean type
+weight_init_mean        = 0.0       # weight attribute values for new connections
+weight_init_stdev       = 1.0
+weight_max_value        = 30
+weight_min_value        = -30
+weight_mutate_power     = 0.5
+weight_mutate_rate      = 0.8
+weight_replace_rate     = 0.1
+
+[DefaultSpeciesSet]
+compatibility_threshold = 3.0  # if genomic distance is less than this, then genomes are from the same species
+
+[DefaultStagnation]
+species_fitness_func = max  # function used to compute species fitness
+max_stagnation       = 20   # species wihout improvement in more generations that that will be considered stagnant and removed
+species_elitism      = 2    # prevent number of species with highest fitness from stagnation 
+
+[DefaultReproduction]
+elitism            = 2    # number of most-fit individuals in each species that will be preserved as-is from one generation to the next
+survival_threshold = 0.2  # fraction for each species allowed to reproduce each generation
+min_species_size   = 2    # minimum number of genomes per species after reproduction
