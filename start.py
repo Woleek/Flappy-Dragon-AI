@@ -4,9 +4,15 @@ import neat
 import random
 pygame.font.init() # initialize fonts
 
+DRAW_LINES = True
+generation = 0
+
 # window proportions
 WIN_HEIGHT = 800
 WIN_WIDTH = 500
+SKY = 0
+GROUND = WIN_HEIGHT
+WIN = pygame.display.set_mode((WIN_WIDTH, WIN_HEIGHT)) # create window object
 
 # dragon model when flapping
 DRAKE_IMGS = [pygame.transform.scale(pygame.image.load(os.path.join("img", "dragon_up.png")), (120, 100)), # load dragon images and scale them to 120x100
@@ -15,13 +21,10 @@ DRAKE_IMGS = [pygame.transform.scale(pygame.image.load(os.path.join("img", "drag
 
 # world models
 PIPE_IMG = pygame.transform.scale2x(pygame.image.load(os.path.join("img", "pipe.png")))
-GROUND_IMG = pygame.transform.scale2x(pygame.image.load(os.path.join("img", "ground.png")))
-SKY_IMG = pygame.transform.scale2x(pygame.image.load(os.path.join("img", "sky.png")))
 BG_IMG = pygame.image.load(os.path.join("img", "bg.png"))
 
 # fonts
-SCORE_FONT = pygame.font.SysFont("agencyfb", 60) # 60px font for score
-END_SCORE_FONT = pygame.font.SysFont("agencyfb", 100) # 200px font for end of game text
+BASIC_FONT = pygame.font.SysFont("agencyfb", 60) # 60px font for score
 
 class Drake:
     IMGS = DRAKE_IMGS 
@@ -86,7 +89,7 @@ class Drake:
             self.img = self.IMGS[0]
             self.img_count = 0
 
-        # not flaping when moving down
+        # not flaping when moving straight down
         if self.tilt <= -80:
             self.img = self.IMGS[1]
             self.img_count = self.ANIMATION_TIME * 2
@@ -101,7 +104,7 @@ class Drake:
 
     
 class Pipe:
-    GAP = 200 # space between pipes
+    GAP = 250 # space between pipes
     VEL = 5 # velocity of movement towards dragon    
     
     # initialize pipe
@@ -151,15 +154,18 @@ class Pipe:
             return False
     
     
-class Base:
-    VEL = 5 # velocity of base movement
+class Background:
+    VEL = 5 # velocity of background movement
+    WIDTH = BG_IMG.get_width()
+    IMG = BG_IMG
     
-    # initialize base
-    def __init__(self, y):
-        self.y = y
+    # initialize background
+    def __init__(self):
+        self.y = 0
         self.x1 = 0 # starting position of 1st image
+        self.x2 = self.WIDTH # starting position of 2nd image
         
-    # move base method 
+    # move background method 
     def move(self):
         self.x1 -= self.VEL
         self.x2 -= self.VEL
@@ -177,145 +183,161 @@ class Base:
         win.blit(self.IMG, (self.x1, self.y))
         win.blit(self.IMG, (self.x2, self.y))
           
-
-class Background(Base):
-    WIDTH = BG_IMG.get_width()
-    IMG = BG_IMG
-    
-    # initialize background
-    def __init__(self):
-        self.y = 0
-        self.x1 = 0 # starting position of 1st image
-        self.x2 = self.WIDTH # starting position of 2nd image
-        
-    # inherit move method
-    def move(self):
-        return super().move()
-    
-    # inherit draw method
-    def draw(self, win):
-        return super().draw(win)
-             
-            
-class Ground(Base):  
-    WIDTH = GROUND_IMG.get_width()
-    IMG = GROUND_IMG
-
-    # inherit initialization and add starting position of 2nd image
-    def __init__(self, y):
-        super().__init__(y)
-        self.x2 = self.WIDTH # starting position of 2nd image
-
-    # inherit move method
-    def move(self):
-        return super().move()
-    
-    # inherit draw method
-    def draw(self, win):
-        return super().draw(win)
-    
-    
-class Sky(Base):
-    WIDTH = SKY_IMG.get_width()
-    IMG = SKY_IMG
-    
-    # inherit initialization and add starting position of 2nd image
-    def __init__(self, y):
-        super().__init__(y)
-        self.x2 = self.WIDTH # starting position of 2nd image
-    
-    # inherit move method
-    def move(self):
-        return super().move()
-    
-    # inherit draw method
-    def draw(self, win):
-        return super().draw(win)
-    
-    
+          
 # initialize window with background and dragon on top of it
-def draw_window(win, background, drake, pipes, ground, sky, score, end):
+def draw_window(win, background, drakes, pipes, score, generation, look_for_pipe):  
+    
+    # increase generation counter
+    if generation == 0:
+        generation = 1
+        
     background.draw(win) # background
-    ground.draw(win) # bottom of the screen
-    sky.draw(win) # top of the screen
         
     # pipes
     for pipe in pipes:
         pipe.draw(win)
         
-    text = SCORE_FONT.render(str(score), True, (255, 255, 255)) # score, white text
+    # score
+    text = BASIC_FONT.render(str(score), True, (255, 255, 255)) # score, white text
     win.blit(text, (WIN_WIDTH - 15 - text.get_width(), 10))  # 10 from top, 15 + text_width from right
     
-    if end:
-        end_text = SCORE_FONT.render("Story ends here", True, (255, 255, 255)) # the end text
-        win.blit(end_text, (WIN_WIDTH / 2 - end_text.get_width() / 2, WIN_HEIGHT / 2 - end_text.get_height())) # centered text
-    else:
+    # generations
+    text = BASIC_FONT.render("Gens: " + str(generation - 1), 1, (255, 255, 255))
+    win.blit(text, (10, 10))
+    
+    # alive
+    text = BASIC_FONT.render("Alive: " + str(len(drakes)), 1, (255, 255, 255))
+    win.blit(text, (10, 70))
+    
+    for drake in drakes:
+        # draw lines from dragons to pipes
+        if DRAW_LINES:
+            try:
+                pygame.draw.line(win, (0, 0, 0), (drake.x + drake.img.get_width() / 2, drake.y + drake.img.get_height() / 2), (pipes[look_for_pipe].x + pipes[look_for_pipe].PIPE_TOP.get_width() / 2, pipes[look_for_pipe].height), 5)
+                pygame.draw.line(win, (0, 0, 0), (drake.x + drake.img.get_width() / 2, drake.y + drake.img.get_height() / 2), (pipes[look_for_pipe].x + pipes[look_for_pipe].PIPE_BOTTOM.get_width() / 2, pipes[look_for_pipe].bottom), 5)
+            except:
+                pass
         drake.draw(win) # dragon
         
     pygame.display.update()      
     
     
-# main function
-def main():
-    drake = Drake(150, 350) # create Drake object
-    win = pygame.display.set_mode((WIN_WIDTH, WIN_HEIGHT)) # create window object
+# fitness function for NEAT
+def fitness(genomes, config):
+    global WIN, generation
+    generation += 1
+    
+    networks = []
+    genes = []
+    drakes = []
+    
+    # set neural network for genomes and put them into lists
+    for _index, genome in genomes:
+        genome.fitness = 0
+        network = neat.nn.FeedForwardNetwork.create(genome, config) # create feed foward network
+        networks.append(network)
+        drakes.append(Drake(230,350))
+        genes.append(genome)
+    
+    
     background = Background()
     pipes = [Pipe(800)]
-    ground = Ground(WIN_HEIGHT - 4)
-    sky = Sky(0)
+    
     clock = pygame.time.Clock() # create clock to measure time
     
     score = 0
-    end = False
     
     # running game loop
     run = True
-    while run:
+    while run and len(drakes) > 0:
         clock.tick(30) # refresh time
+        
+        # exit game by clicking X
         for event in pygame.event.get():
-            # exit game by clicking X
             if event.type == pygame.QUIT:
                 run = False
+                pygame.quit()
+                quit()
+        
+        # if dragon passes 1st pipe on the screen, then look at 2nd
+        look_for_pipe = 0
+        if len(drakes) > 0:
+            if len(pipes) > 1 and drakes[0].x > pipes[0].x + pipes[0].PIPE_TOP.get_width():
+                look_for_pipe = 1
+                
+        # move all dragons
+        for index, drake in enumerate(drakes):
+            drake.move()
+            genes[index].fitness += 0.1 # increase fitness by 1 every 30sec
+            
+            # value of output neuron
+            output = networks[index].activate((drake.y, abs(drake.y - pipes[look_for_pipe].height), abs(drake.y - pipes[look_for_pipe].bottom)))
+            # check if dragon should flap based on output
+            if output[0] > 0.5:
+                drake.flap()
+                
+        background.move()
         
         add_pipe = False
         remove_pipes = []
         for pipe in pipes:
-            # chckeing if pipe collided with dragon
-            if pipe.collide(drake):
-                end = True       
-            
+            pipe.move()
+            for index, drake in enumerate(drakes): 
+                # chckeing if pipe collided with dragon
+                if pipe.collide(drake):
+                    # remove dead dragon
+                    genes[index].fitness -= 1
+                    networks.pop(index)
+                    genes.pop(index)
+                    drakes.pop(index)
+                    
             #checking if pipe left the screen
             if pipe.x + pipe.PIPE_TOP.get_width() < 0:
-                remove_pipes.append(pipe)
-            
+                remove_pipes.append(pipe) 
+                    
             # checking if dragon passed pipe
             if not pipe.passed and pipe.x < drake.x:
                 pipe.passed = True
-                add_pipe = True # draw new pipe
-    
-            pipe.move()
+                add_pipe = True # draw new pipe    
             
         # checking if new pipe should be added
-        if add_pipe and not end:
+        if add_pipe:
             score += 1
             pipes.append(Pipe(600))
             
         # remove passed pipes
+        
         for rem in remove_pipes:
             pipes.remove(rem)
         
-        # check if dragon hit bottom or top of the screen
-        if drake.y + drake.img.get_height() > ground.y or drake.y - drake.img.get_height() < sky.y:
-            end = True 
+        for index, drake in enumerate(drakes):
+            # check if dragon hit bottom or top of the screen
+            if drake.y + drake.img.get_height() > GROUND or drake.y - drake.img.get_height() < SKY:
+                networks.pop(index)
+                genes.pop(index)
+                drakes.pop(index)
             
-        background.move()
-        ground.move()
-        sky.move()
-        draw_window(win, background, drake, pipes, ground, sky, score, end) # refresh window
-        
-    pygame.quit()
-    quit()
+        draw_window(WIN, background, drakes, pipes, score, generation, look_for_pipe) # refresh window
+    
 
+# start process
+def run(config_path):
+    # define default NEAT settings
+    config = neat.config.Config(neat.DefaultGenome, neat.DefaultReproduction, neat.DefaultSpeciesSet, neat.DefaultStagnation, config_path)
+    
+    population = neat.Population(config) # define population from config
+    population.add_reporter(neat.StdOutReporter(True)) # configurate output to terminal
+    stats = neat.StatisticsReporter()
+    population.add_reporter(stats)
+    
+    # run up to 50 generations
+    best = population.run(fitness, 50)
+    
+    # show final stats
+    print('\nBest genome:\n{!s}'.format(best))
 
-# run main function
-main()
+# run main program
+if __name__ == '__main__':
+    local_dir = os.path.dirname(__file__) # path to directory
+    config_path = os.path.join(local_dir, "NEAT-config.txt") # path to NEAT config file
+    run(config_path)
